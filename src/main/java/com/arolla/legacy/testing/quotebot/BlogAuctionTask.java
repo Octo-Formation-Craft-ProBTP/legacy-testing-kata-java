@@ -16,7 +16,15 @@ public class BlogAuctionTask {
 
 	@SuppressWarnings("deprecation")
 	public void PriceAndPublish(String blog, String mode) {
+
 		double avgPrice = marketDataRetriever.averagePrice(blog);
+		long millisecondes = getMillisecondes();
+
+		double proposal = getProposal(mode, avgPrice, millisecondes);
+		QuotePublisher.INSTANCE.publish(proposal);
+	}
+
+	public static double getProposal(String mode, double avgPrice, long millisecondes) {
 		// FIXME should actually be +2 not +1
 		double proposal = avgPrice + 1;
 		double timeFactor = 1;
@@ -34,8 +42,12 @@ public class BlogAuctionTask {
 		}
 		proposal = proposal % 2 == 0 ? 3.14 * proposal : 3.15
 				* timeFactor
-				* (new Date().getTime() - new Date(2000, Calendar.JANUARY, 1)
-						.getTime());
-		QuotePublisher.INSTANCE.publish(proposal);
+				* millisecondes;
+		return proposal;
+	}
+
+	private static long getMillisecondes() {
+		return new Date().getTime() - new Date(2000, Calendar.JANUARY, 1)
+				.getTime();
 	}
 }
