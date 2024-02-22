@@ -5,7 +5,11 @@ import java.util.Collection;
 
 import javax.swing.JOptionPane;
 
-public class TechBlogs {
+public class TechBlogs implements BlogsProvider {
+	@Override
+	public Collection<String> getListAllBlogs() {
+		return listAllBlogs();
+	}
 
 	public static Collection<String> listAllBlogs() {
 		try {

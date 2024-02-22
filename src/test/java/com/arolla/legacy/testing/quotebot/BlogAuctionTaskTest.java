@@ -1,6 +1,5 @@
 package com.arolla.legacy.testing.quotebot;
 
-import com.arolla.legacy.testing.thirdparty.quotebot.MarketStudyVendor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
