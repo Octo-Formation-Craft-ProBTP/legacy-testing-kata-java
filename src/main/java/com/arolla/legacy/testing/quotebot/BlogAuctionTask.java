@@ -1,53 +1,78 @@
 package com.arolla.legacy.testing.quotebot;
 
-import java.util.Calendar;
-import java.util.Date;
-
 import com.arolla.legacy.testing.thirdparty.quotebot.MarketStudyVendor;
-import com.arolla.legacy.testing.thirdparty.quotebot.QuotePublisher;
+
+import java.util.Arrays;
 
 public class BlogAuctionTask {
 
-	private final MarketStudyVendor marketDataRetriever;
+    private final DataRetriever marketDataRetriever;
+    private ITimeProvider timeProvider;
+    private PublisherWrapper publisherWrapper;
 
-	public BlogAuctionTask() {
-		marketDataRetriever = new MarketStudyVendor();
-	}
+    public BlogAuctionTask() {
+        this(new DataRetrieverImpl(),new TimeProvider(), new PublisherWrapperImpl());
+    }
 
-	@SuppressWarnings("deprecation")
-	public void PriceAndPublish(String blog, String mode) {
+    public BlogAuctionTask(DataRetriever marketDataRetriever, ITimeProvider timeProvider, PublisherWrapper publisherWrapper) {
+        this.marketDataRetriever = marketDataRetriever;
+        this.timeProvider = timeProvider;
+        this.publisherWrapper = publisherWrapper;
+    }
 
-		double avgPrice = marketDataRetriever.averagePrice(blog);
-		long millisecondes = getMillisecondes();
+    @SuppressWarnings("deprecation")
+    public void PriceAndPublish(String blog, String mode) {
+        priceAndPublish(blog, mode);
+    }
 
-		double proposal = getProposal(mode, avgPrice, millisecondes);
-		QuotePublisher.INSTANCE.publish(proposal);
-	}
+    public void priceAndPublish(String blog, String mode) {
+        double averagePrice = marketDataRetriever.getAveragePrice(blog);
+        long milliseconds = timeProvider.getMilliseconds();
+        double proposal = averagePrice + 2;
+        if (isEven(proposal)) {
+            proposal = getProposalEvenPrices(proposal);
+        } else {
+            proposal = getProposalOddPrices(mode, milliseconds);
+        }
+        publisherWrapper.publish(proposal);
+    }
 
-	public static double getProposal(String mode, double avgPrice, long millisecondes) {
-		// FIXME should actually be +2 not +1
-		double proposal = avgPrice + 1;
-		double timeFactor = 1;
-		if (mode.equals("SLOW")) {
-			timeFactor = 2;
-		}
-		if (mode.equals("MEDIUM")) {
-			timeFactor = 4;
-		}
-		if (mode.equals("FAST")) {
-			timeFactor = 8;
-		}
-		if (mode.equals("ULTRAFAST")) {
-			timeFactor = 13;
-		}
-		proposal = proposal % 2 == 0 ? 3.14 * proposal : 3.15
-				* timeFactor
-				* millisecondes;
-		return proposal;
-	}
 
-	private static long getMillisecondes() {
-		return new Date().getTime() - new Date(2000, Calendar.JANUARY, 1)
-				.getTime();
-	}
+	public static double getProposalEvenPrices(double proposal) {
+        return 3.14 * proposal;
+    }
+
+    private static boolean isEven(double proposal) {
+        return proposal % 2 == 0;
+    }
+
+    public static double getProposalOddPrices(String mode, long milliseconds) {
+        return 3.15
+                * Mode.timeFactor(mode)
+                * milliseconds;
+    }
+
+
+    public enum Mode {
+        DEFAULT("", 1),
+        SLOW("SLOW", 2),
+        MEDIUM("MEDIUM", 4),
+        FAST("FAST", 8),
+        ULTRAFAST("ULTRAFAST", 13);
+
+        String name;
+        double timeFactor;
+
+        Mode(String name, double timeFactor) {
+            this.name = name;
+            this.timeFactor = timeFactor;
+        }
+
+        static double timeFactor(String name) {
+            return Arrays.stream(values())
+                    .filter(mode -> mode.name.equals(name))
+                    .findFirst()
+                    .orElse(DEFAULT).timeFactor;
+        }
+    }
 }
